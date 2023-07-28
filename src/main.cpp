@@ -23,6 +23,41 @@ ProcessPointClouds<pcl::PointXYZI> point_cloud_processor; // TODO input
 //auto stream_iterator = stream.begin(); // TODO remove
 pcl::PointCloud<pcl::PointXYZI>::Ptr input_cloud(new pcl::PointCloud<pcl::PointXYZI>()); // TODO
 
+pcl::visualization::PCLVisualizer::Ptr visualize_shape() // TODO name, return type
+{
+//    viewer->setBackgroundColor (0, 0, 0); // TODO remove
+
+    pcl::ModelCoefficients coeffs;
+    coeffs.values.clear ();
+    coeffs.values.push_back (0);
+    coeffs.values.push_back (0);
+    coeffs.values.push_back (5);
+    viewer->addCircle(coeffs, "circle"); // TODO name
+    viewer->setShapeRenderingProperties(pcl::visualization::PCL_VISUALIZER_REPRESENTATION, pcl::visualization::PCL_VISUALIZER_REPRESENTATION_WIREFRAME, "circle");
+    viewer->setShapeRenderingProperties(pcl::visualization::PCL_VISUALIZER_LINE_WIDTH,3, "circle");
+    viewer->setShapeRenderingProperties(pcl::visualization::PCL_VISUALIZER_COLOR, 1,0,0, "circle");
+
+    coeffs.values.clear ();
+    coeffs.values.push_back (0);
+    coeffs.values.push_back (0);
+    coeffs.values.push_back (10);
+    viewer->addCircle(coeffs, "circle2");
+    viewer->setShapeRenderingProperties(pcl::visualization::PCL_VISUALIZER_REPRESENTATION, pcl::visualization::PCL_VISUALIZER_REPRESENTATION_WIREFRAME, "circle2");
+    viewer->setShapeRenderingProperties(pcl::visualization::PCL_VISUALIZER_LINE_WIDTH,3, "circle2");
+    viewer->setShapeRenderingProperties(pcl::visualization::PCL_VISUALIZER_COLOR, 1,1,0, "circle2");
+
+    coeffs.values.clear ();
+    coeffs.values.push_back (0);
+    coeffs.values.push_back (0);
+    coeffs.values.push_back (15);
+    viewer->addCircle(coeffs, "circle3");
+    viewer->setShapeRenderingProperties(pcl::visualization::PCL_VISUALIZER_REPRESENTATION, pcl::visualization::PCL_VISUALIZER_REPRESENTATION_WIREFRAME, "circle3");
+    viewer->setShapeRenderingProperties(pcl::visualization::PCL_VISUALIZER_LINE_WIDTH,3, "circle3");
+    viewer->setShapeRenderingProperties(pcl::visualization::PCL_VISUALIZER_COLOR, 0,1,0, "circle3");
+
+    return (viewer); // TODO remove
+}
+
 void cityBlock(pcl::visualization::PCLVisualizer::Ptr& viewer, ProcessPointClouds<pcl::PointXYZI>& point_cloud_processor, pcl::PointCloud<pcl::PointXYZI>::Ptr& input_cloud) {
     renderPointCloud(viewer, input_cloud, "InputCloud");
 
@@ -101,6 +136,8 @@ void run_pcl_viewer(pcl::PointCloud<pcl::PointXYZI>::Ptr input_cloud) {
     viewer->removeAllPointClouds();
     viewer->removeAllShapes();
 
+    visualize_shape();
+
     // Run obstacle detection process
     cityBlock(viewer, point_cloud_processor, input_cloud);
 
@@ -123,8 +160,8 @@ int main (int argc, char** argv) {
     ros::NodeHandle nh;
 
     // Create a ROS subscriber for the input point cloud
-    ros::Subscriber sub2 = nh.subscribe("/ouster/points", 1, callback); // TODO
-//    ros::Subscriber sub2 = nh.subscribe("/velodyne_points", 1, callback); // TODO
+    ros::Subscriber sub = nh.subscribe("/ouster/points", 1, callback); // TODO
+//    ros::Subscriber sub = nh.subscribe("/velodyne_points", 1, callback); // TODO
     ros::spin();
 
     return 0;
