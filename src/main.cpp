@@ -25,7 +25,7 @@ void cityBlock(pcl::visualization::PCLVisualizer::Ptr& viewer, ProcessPointCloud
 
     constexpr int kMaxIterations = 100;
     constexpr float kDistanceThreshold = 0.2;
-    auto segment_cloud = point_cloud_processor.SegmentPlane(filter_cloud, kMaxIterations, kDistanceThreshold);
+//    auto segment_cloud = point_cloud_processor.SegmentPlane(filter_cloud, kMaxIterations, kDistanceThreshold); // TODO remove
 
 //    // render obstacles point cloud with red
 //    renderPointCloud(viewer, segment_cloud.first, "ObstacleCloud", Color(1, 0, 0));
@@ -38,7 +38,7 @@ void cityBlock(pcl::visualization::PCLVisualizer::Ptr& viewer, ProcessPointCloud
     constexpr float kClusterTolerance = 0.35;
     constexpr int kMinSize = 15;
     constexpr int kMaxSize = 600;
-    auto cloud_clusters = point_cloud_processor.Clustering(segment_cloud.first, kClusterTolerance, kMinSize, kMaxSize);
+//    auto cloud_clusters = point_cloud_processor.Clustering(segment_cloud.first, kClusterTolerance, kMinSize, kMaxSize); // TODO remove
 
     int cluster_ID = 1;
     std::vector<Color> colors = {Color(1, 0, 0), Color(0, 0, 1), Color(0.5, 0, 1)};
@@ -48,15 +48,16 @@ void cityBlock(pcl::visualization::PCLVisualizer::Ptr& viewer, ProcessPointCloud
     renderBox(viewer, host_box, 0, Color(0.5, 0, 1), 0.8);
 
     constexpr float kBBoxMinHeight = 0.75;
-    for(const auto& cluster : cloud_clusters) {
-        std::cout << "cluster size ";
-        point_cloud_processor.numPoints(cluster);
-
+//    for(const auto& cluster : cloud_clusters) { // TODO remove
+    int num_of_bbox = 5; // TODO remove, Subscribe # of bbox
+    for(int i=0; i<num_of_bbox; i++) { // TODO remove
 //        renderPointCloud(viewer, cluster, "ObstacleCloud" + std::to_string(cluster_ID), colors[cluster_ID % num_of_colors]);
 
-        Box box = point_cloud_processor.BoundingBox(cluster);
+//        Box box = point_cloud_processor.BoundingBox(cluster); // TODO remove
+        Box box; // TODO remove, Subscribe Bbox coordinates
         // Filter out some cluster with little points and shorter in height
-        if (box.z_max - box.z_min >= kBBoxMinHeight || cluster->points.size() >= kMinSize * 2) {
+//        if (box.z_max - box.z_min >= kBBoxMinHeight || cluster->points.size() >= kMinSize * 2) { // TODO remove
+        if (box.z_max - box.z_min >= kBBoxMinHeight) { // TODO remove
             renderBox(viewer, box, cluster_ID);
         }
 
