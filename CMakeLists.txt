@@ -18,6 +18,8 @@ endif()
 find_package(catkin REQUIRED COMPONENTS
         roscpp
         std_msgs
+        sensor_msgs
+        pcl_conversions
         )
 if (catkin_FOUND)
     message("Find catkin")
@@ -29,4 +31,4 @@ endif()
 file(GLOB SOURCE_FILES src/*.cpp src/render/*.cpp)
 
 add_executable(${CMAKE_PROJECT_NAME} ${SOURCE_FILES})
-target_link_libraries (${CMAKE_PROJECT_NAME} ${PCL_LIBRARIES})
+target_link_libraries (${CMAKE_PROJECT_NAME} ${PCL_LIBRARIES} ${catkin_LIBRARIES})

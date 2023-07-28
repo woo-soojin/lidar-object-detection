@@ -7,10 +7,21 @@
  * Date: 05/25/2019
  */
 
+#include <ros/ros.h>
+#include <sensor_msgs/PointCloud2.h>
+#include <pcl_conversions/pcl_conversions.h>
+
 #include "render/render.h"
 #include "processPointClouds.h"
 // using templates for processPointClouds so also include .cpp to help linker
 #include "processPointClouds.cpp"
+
+pcl::visualization::PCLVisualizer::Ptr viewer(new pcl::visualization::PCLVisualizer("FOC GUI")); // TODO
+
+ProcessPointClouds<pcl::PointXYZI> point_cloud_processor; // TODO input
+//std::vector<boost::filesystem::path> stream = point_cloud_processor.streamPcd("../data/pcd/data_2"); // TODO remove
+//auto stream_iterator = stream.begin(); // TODO remove
+pcl::PointCloud<pcl::PointXYZI>::Ptr input_cloud(new pcl::PointCloud<pcl::PointXYZI>()); // TODO
 
 void cityBlock(pcl::visualization::PCLVisualizer::Ptr& viewer, ProcessPointClouds<pcl::PointXYZI>& point_cloud_processor, pcl::PointCloud<pcl::PointXYZI>::Ptr& input_cloud) {
     renderPointCloud(viewer, input_cloud, "InputCloud");
@@ -85,32 +96,36 @@ void initCamera(CameraAngle setAngle, pcl::visualization::PCLVisualizer::Ptr& vi
         viewer->addCoordinateSystem(1.0);
 }
 
+void run_pcl_viewer(pcl::PointCloud<pcl::PointXYZI>::Ptr input_cloud) {
+    // Clear viewer
+    viewer->removeAllPointClouds();
+    viewer->removeAllShapes();
+
+    // Run obstacle detection process
+    cityBlock(viewer, point_cloud_processor, input_cloud);
+
+    // viewer spin
+    viewer->spinOnce();
+}
+
+void callback(const sensor_msgs::PointCloud2& msg) {
+    pcl::fromROSMsg(msg, *input_cloud);
+    run_pcl_viewer(input_cloud);
+    std::cout << input_cloud->size() << std::endl;
+}
 
 int main (int argc, char** argv) {
-    pcl::visualization::PCLVisualizer::Ptr viewer(new pcl::visualization::PCLVisualizer("3D Viewer"));
     CameraAngle setAngle = FPS;
     initCamera(setAngle, viewer);
 
-    ProcessPointClouds<pcl::PointXYZI> point_cloud_processor;
-    std::vector<boost::filesystem::path> stream = point_cloud_processor.streamPcd("../data/pcd/data_2");
-    auto stream_iterator = stream.begin();
-    pcl::PointCloud<pcl::PointXYZI>::Ptr input_cloud;
+    // Initialize ROS
+    ros::init (argc, argv, "FOC_GUI");
+    ros::NodeHandle nh;
 
-    while (!viewer->wasStopped()) {
-        // Clear viewer
-        viewer->removeAllPointClouds();
-        viewer->removeAllShapes();
+    // Create a ROS subscriber for the input point cloud
+    ros::Subscriber sub2 = nh.subscribe("/ouster/points", 1, callback); // TODO
+//    ros::Subscriber sub2 = nh.subscribe("/velodyne_points", 1, callback); // TODO
+    ros::spin();
 
-        // Load pcd and run obstacle detection process
-        input_cloud = point_cloud_processor.loadPcd((*stream_iterator).string());
-        cityBlock(viewer, point_cloud_processor, input_cloud);
-
-        stream_iterator++;
-        // keep looping
-        if(stream_iterator == stream.end())
-            stream_iterator = stream.begin();
-
-        // viewer spin
-        viewer->spinOnce();
-    }
+    return 0;
 }
