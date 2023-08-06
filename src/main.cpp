@@ -19,14 +19,10 @@
 
 lidar_object_detection::bbox bounding_box;
 ProcessPointClouds<pcl::PointXYZI> point_cloud_processor; // TODO input
-//std::vector<boost::filesystem::path> stream = point_cloud_processor.streamPcd("../data/pcd/data_2"); // TODO remove
-//auto stream_iterator = stream.begin(); // TODO remove
 pcl::PointCloud<pcl::PointXYZI>::Ptr input_cloud(new pcl::PointCloud<pcl::PointXYZI>()); // TODO
 
 pcl::visualization::PCLVisualizer::Ptr visualize_shape(pcl::visualization::PCLVisualizer::Ptr viewer) // TODO name, return type, input type
 {
-//    viewer->setBackgroundColor (0, 0, 0); // TODO remove
-
     pcl::ModelCoefficients coeffs;
     coeffs.values.clear ();
     coeffs.values.push_back (0);
@@ -67,38 +63,17 @@ void cityBlock(pcl::visualization::PCLVisualizer::Ptr& viewer, ProcessPointCloud
     const Eigen::Vector4f kMaxPoint(60, 6.5, 4, 1);
     auto filter_cloud = point_cloud_processor.FilterCloud(input_cloud, kFilterResolution, kMinPoint, kMaxPoint);
 
-//    renderPointCloud(viewer, filter_cloud, "FilteredCloud");
-
-    constexpr int kMaxIterations = 100;
-    constexpr float kDistanceThreshold = 0.2;
-//    auto segment_cloud = point_cloud_processor.SegmentPlane(filter_cloud, kMaxIterations, kDistanceThreshold); // TODO remove
-
-//    // render obstacles point cloud with red
-//    renderPointCloud(viewer, segment_cloud.first, "ObstacleCloud", Color(1, 0, 0));
-    // render ground plane with green
-//    renderPointCloud(viewer, segment_cloud.second, "GroundCloud", Color(0, 1, 0));
-
-
-    /*** Euclidean clustering ***/
-    // float clusterTolerance, int minSize, int maxSize
-    constexpr float kClusterTolerance = 0.35;
     constexpr int kMinSize = 15;
     constexpr int kMaxSize = 600;
-//    auto cloud_clusters = point_cloud_processor.Clustering(segment_cloud.first, kClusterTolerance, kMinSize, kMaxSize); // TODO remove
 
-    int cluster_ID = 1;
-    std::vector<Color> colors = {Color(1, 0, 0), Color(0, 0, 1), Color(0.5, 0, 1)};
-    int num_of_colors = colors.size();
-
+    int ID = 1;
     Box host_box = {-1.5, -1.7, -1, 2.6, 1.7, -0.4};
     renderBox(viewer, host_box, 0, Color(0.5, 0, 1), 0.8);
 
     constexpr float kBBoxMinHeight = 0.75;
-//    for(const auto& cluster : cloud_clusters) { // TODO remove
     Box box; // TODO remove, Subscribe Bbox coordinates
     int num_of_bbox = bounding_box.x_max.size(); // TODO
     for(int i=0; i<num_of_bbox; i++) { // TODO remove
-//        renderPointCloud(viewer, cluster, "ObstacleCloud" + std::to_string(cluster_ID), colors[cluster_ID % num_of_colors]);
         box.x_min = bounding_box.x_min[i];
         box.y_min = bounding_box.y_min[i];
         box.z_min = bounding_box.z_min[i];
@@ -106,15 +81,8 @@ void cityBlock(pcl::visualization::PCLVisualizer::Ptr& viewer, ProcessPointCloud
         box.y_max = bounding_box.y_max[i];
         box.z_max = bounding_box.z_max[i];
 
-        renderBox(viewer, box, cluster_ID, Color(0.5, 0, 1));
-
-        // Filter out some cluster with little points and shorter in height
-//        if (box.z_max - box.z_min >= kBBoxMinHeight || cluster->points.size() >= kMinSize * 2) { // TODO remove
-//        if (box.z_max - box.z_min >= kBBoxMinHeight) { // TODO remove
-//            renderBox(viewer, box, cluster_ID);
-//        }
-
-        cluster_ID++;
+        renderBox(viewer, box, ID, Color(0.5, 0, 1));
+        ID++;
     }
 }
 
