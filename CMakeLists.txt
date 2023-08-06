@@ -24,7 +24,7 @@ find_package(catkin REQUIRED COMPONENTS
         )
 if (catkin_FOUND)
     message("Find catkin")
-    add_message_files(FILES detector.msg)
+    add_message_files(FILES bbox.msg)
     generate_messages(DEPENDENCIES std_msgs)
     catkin_package(CATKIN_DEPENDS message_runtime)
     include_directories(${catkin_INCLUDE_DIRS})
