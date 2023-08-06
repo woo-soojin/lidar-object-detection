@@ -143,7 +143,7 @@ int main (int argc, char** argv) {
 
     // Create a ROS subscriber for the input point cloud
     ros::Subscriber sub = nh.subscribe("/ouster/points", 1, callback1); // TODO
-//    ros::Subscriber sub = nh.subscribe("/velodyne_points", 1, callback); // TODO
+//    ros::Subscriber sub = nh.subscribe("/velodyne_points", 1, callback1); // TODO
     ros::Subscriber sub2 = nh.subscribe("/detector", 10, callback2); // TODO
     ros::spin();
 
