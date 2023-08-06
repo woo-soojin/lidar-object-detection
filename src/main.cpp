@@ -10,20 +10,20 @@
 #include <ros/ros.h>
 #include <sensor_msgs/PointCloud2.h>
 #include <pcl_conversions/pcl_conversions.h>
+#include <thread>
 
+#include "lidar_object_detection/bbox.h"
 #include "render/render.h"
 #include "processPointClouds.h"
-// using templates for processPointClouds so also include .cpp to help linker
 #include "processPointClouds.cpp"
 
-pcl::visualization::PCLVisualizer::Ptr viewer(new pcl::visualization::PCLVisualizer("FOC GUI")); // TODO
-
+lidar_object_detection::bbox bounding_box;
 ProcessPointClouds<pcl::PointXYZI> point_cloud_processor; // TODO input
 //std::vector<boost::filesystem::path> stream = point_cloud_processor.streamPcd("../data/pcd/data_2"); // TODO remove
 //auto stream_iterator = stream.begin(); // TODO remove
 pcl::PointCloud<pcl::PointXYZI>::Ptr input_cloud(new pcl::PointCloud<pcl::PointXYZI>()); // TODO
 
-pcl::visualization::PCLVisualizer::Ptr visualize_shape() // TODO name, return type
+pcl::visualization::PCLVisualizer::Ptr visualize_shape(pcl::visualization::PCLVisualizer::Ptr viewer) // TODO name, return type, input type
 {
 //    viewer->setBackgroundColor (0, 0, 0); // TODO remove
 
@@ -95,17 +95,24 @@ void cityBlock(pcl::visualization::PCLVisualizer::Ptr& viewer, ProcessPointCloud
 
     constexpr float kBBoxMinHeight = 0.75;
 //    for(const auto& cluster : cloud_clusters) { // TODO remove
-    int num_of_bbox = 5; // TODO remove, Subscribe # of bbox
+    Box box; // TODO remove, Subscribe Bbox coordinates
+    int num_of_bbox = bounding_box.x_max.size(); // TODO
     for(int i=0; i<num_of_bbox; i++) { // TODO remove
 //        renderPointCloud(viewer, cluster, "ObstacleCloud" + std::to_string(cluster_ID), colors[cluster_ID % num_of_colors]);
+        box.x_min = bounding_box.x_min[i];
+        box.y_min = bounding_box.y_min[i];
+        box.z_min = bounding_box.z_min[i];
+        box.x_max = bounding_box.x_max[i];
+        box.y_max = bounding_box.y_max[i];
+        box.z_max = bounding_box.z_max[i];
 
-//        Box box = point_cloud_processor.BoundingBox(cluster); // TODO remove
-        Box box; // TODO remove, Subscribe Bbox coordinates
+        renderBox(viewer, box, cluster_ID, Color(0.5, 0, 1));
+
         // Filter out some cluster with little points and shorter in height
 //        if (box.z_max - box.z_min >= kBBoxMinHeight || cluster->points.size() >= kMinSize * 2) { // TODO remove
-        if (box.z_max - box.z_min >= kBBoxMinHeight) { // TODO remove
-            renderBox(viewer, box, cluster_ID);
-        }
+//        if (box.z_max - box.z_min >= kBBoxMinHeight) { // TODO remove
+//            renderBox(viewer, box, cluster_ID);
+//        }
 
         cluster_ID++;
     }
@@ -132,36 +139,44 @@ void initCamera(CameraAngle setAngle, pcl::visualization::PCLVisualizer::Ptr& vi
 }
 
 void run_pcl_viewer(pcl::PointCloud<pcl::PointXYZI>::Ptr input_cloud) {
-    // Clear viewer
-    viewer->removeAllPointClouds();
-    viewer->removeAllShapes();
+    pcl::visualization::PCLVisualizer::Ptr viewer(new pcl::visualization::PCLVisualizer("FOC GUI")); // TODO
+    CameraAngle setAngle = FPS;
+    initCamera(setAngle, viewer);
 
-    visualize_shape();
+    while(!viewer->wasStopped()) {
+        // Clear viewer
+        viewer->removeAllPointClouds();
+        viewer->removeAllShapes();
 
-    // Run obstacle detection process
-    cityBlock(viewer, point_cloud_processor, input_cloud);
+        visualize_shape(viewer);
 
-    // viewer spin
-    viewer->spinOnce();
+        // Run obstacle detection process
+        cityBlock(viewer, point_cloud_processor, input_cloud);
+
+        // viewer spin
+        viewer->spinOnce(100);
+    }
 }
 
-void callback(const sensor_msgs::PointCloud2& msg) {
+void callback1(const sensor_msgs::PointCloud2& msg) {
     pcl::fromROSMsg(msg, *input_cloud);
-    run_pcl_viewer(input_cloud);
-    std::cout << input_cloud->size() << std::endl;
+}
+
+void callback2(lidar_object_detection::bbox msg) {
+    bounding_box = msg;
 }
 
 int main (int argc, char** argv) {
-    CameraAngle setAngle = FPS;
-    initCamera(setAngle, viewer);
+    std::thread pclViewer(run_pcl_viewer, input_cloud);
 
     // Initialize ROS
     ros::init (argc, argv, "FOC_GUI");
     ros::NodeHandle nh;
 
     // Create a ROS subscriber for the input point cloud
-    ros::Subscriber sub = nh.subscribe("/ouster/points", 1, callback); // TODO
+    ros::Subscriber sub = nh.subscribe("/ouster/points", 1, callback1); // TODO
 //    ros::Subscriber sub = nh.subscribe("/velodyne_points", 1, callback); // TODO
+    ros::Subscriber sub2 = nh.subscribe("/detector", 10, callback2); // TODO
     ros::spin();
 
     return 0;
