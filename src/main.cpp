@@ -14,11 +14,8 @@
 
 #include "lidar_object_detection/bbox.h"
 #include "render/render.h"
-#include "processPointClouds.h"
-#include "processPointClouds.cpp"
 
-lidar_object_detection::bbox bounding_box;
-ProcessPointClouds<pcl::PointXYZI> point_cloud_processor; // TODO input
+lidar_object_detection::bbox bounding_box; // TODO
 pcl::PointCloud<pcl::PointXYZI>::Ptr input_cloud(new pcl::PointCloud<pcl::PointXYZI>()); // TODO
 
 pcl::visualization::PCLVisualizer::Ptr visualize_shape(pcl::visualization::PCLVisualizer::Ptr viewer) // TODO name, return type, input type
@@ -54,14 +51,13 @@ pcl::visualization::PCLVisualizer::Ptr visualize_shape(pcl::visualization::PCLVi
     return (viewer); // TODO remove
 }
 
-void cityBlock(pcl::visualization::PCLVisualizer::Ptr& viewer, ProcessPointClouds<pcl::PointXYZI>& point_cloud_processor, pcl::PointCloud<pcl::PointXYZI>::Ptr& input_cloud) {
+void cityBlock(pcl::visualization::PCLVisualizer::Ptr& viewer, pcl::PointCloud<pcl::PointXYZI>::Ptr& input_cloud) {
     renderPointCloud(viewer, input_cloud, "InputCloud");
 
     // Input point cloud, filter resolution, min Point, max Point
     constexpr float kFilterResolution = 0.2;
     const Eigen::Vector4f kMinPoint(-50, -6.0, -3, 1);
     const Eigen::Vector4f kMaxPoint(60, 6.5, 4, 1);
-    auto filter_cloud = point_cloud_processor.FilterCloud(input_cloud, kFilterResolution, kMinPoint, kMaxPoint);
 
     constexpr int kMinSize = 15;
     constexpr int kMaxSize = 600;
@@ -73,7 +69,7 @@ void cityBlock(pcl::visualization::PCLVisualizer::Ptr& viewer, ProcessPointCloud
     constexpr float kBBoxMinHeight = 0.75;
     Box box; // TODO remove, Subscribe Bbox coordinates
     int num_of_bbox = bounding_box.x_max.size(); // TODO
-    for(int i=0; i<num_of_bbox; i++) { // TODO remove
+    for(int i=0; i<num_of_bbox; i++) { // TODO method
         box.x_min = bounding_box.x_min[i];
         box.y_min = bounding_box.y_min[i];
         box.z_min = bounding_box.z_min[i];
@@ -119,7 +115,7 @@ void run_pcl_viewer(pcl::PointCloud<pcl::PointXYZI>::Ptr input_cloud) {
         visualize_shape(viewer);
 
         // Run obstacle detection process
-        cityBlock(viewer, point_cloud_processor, input_cloud);
+        cityBlock(viewer, input_cloud);
 
         // viewer spin
         viewer->spinOnce(100);
