@@ -118,7 +118,8 @@ void run_pcl_viewer(pcl::PointCloud<pcl::PointXYZI>::Ptr input_cloud) {
         cityBlock(viewer, input_cloud);
 
         // viewer spin
-        viewer->spinOnce(100);
+//        viewer->spinOnce(100);
+        viewer->spinOnce(1);
     }
 }
 
@@ -128,17 +129,23 @@ void callback1(const sensor_msgs::PointCloud2& msg) {
 
 void callback2(lidar_object_detection::bbox msg) {
     bounding_box = msg;
+//    sensor_msgs::PointCloud2 test;
+//    test = msg.lidar;
+//    std::cout << msg.lidar_point << std::endl;
+    pcl::fromROSMsg(msg.lidar_point, *input_cloud);
+//    run_pcl_viewer(input_cloud);
 }
 
 int main (int argc, char** argv) {
     std::thread pclViewer(run_pcl_viewer, input_cloud);
+//    run_pcl_viewer(input_cloud);
 
     // Initialize ROS
     ros::init (argc, argv, "FOC_GUI");
     ros::NodeHandle nh;
 
     // Create a ROS subscriber for the input point cloud
-    ros::Subscriber sub = nh.subscribe("/ouster/points", 1, callback1); // TODO
+//    ros::Subscriber sub = nh.subscribe("/ouster/points", 1, callback1); // TODO
 //    ros::Subscriber sub = nh.subscribe("/velodyne_points", 1, callback1); // TODO
     ros::Subscriber sub2 = nh.subscribe("/detector", 10, callback2); // TODO
     ros::spin();
