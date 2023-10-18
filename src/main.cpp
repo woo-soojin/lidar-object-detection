@@ -7,60 +7,46 @@
  * Date: 05/25/2019
  */
 
-#include "render/render.h"
-#include "processPointClouds.h"
-// using templates for processPointClouds so also include .cpp to help linker
-#include "processPointClouds.cpp"
+#include <ros/ros.h>
+#include <sensor_msgs/PointCloud2.h>
+#include <pcl_conversions/pcl_conversions.h>
 
-void cityBlock(pcl::visualization::PCLVisualizer::Ptr& viewer, ProcessPointClouds<pcl::PointXYZI>& point_cloud_processor, pcl::PointCloud<pcl::PointXYZI>::Ptr& input_cloud) {
+#include "lidar_object_detection/bbox.h"
+#include "render/render.h"
+
+pcl::visualization::PCLVisualizer::Ptr viewer(new pcl::visualization::PCLVisualizer("FOC GUI")); // TODO
+
+lidar_object_detection::bbox bounding_box; // TODO
+pcl::PointCloud<pcl::PointXYZI>::Ptr input_cloud(new pcl::PointCloud<pcl::PointXYZI>()); // TODO
+
+void cityBlock(pcl::visualization::PCLVisualizer::Ptr& viewer, pcl::PointCloud<pcl::PointXYZI>::Ptr& input_cloud) {
     renderPointCloud(viewer, input_cloud, "InputCloud");
 
     // Input point cloud, filter resolution, min Point, max Point
     constexpr float kFilterResolution = 0.2;
     const Eigen::Vector4f kMinPoint(-50, -6.0, -3, 1);
     const Eigen::Vector4f kMaxPoint(60, 6.5, 4, 1);
-    auto filter_cloud = point_cloud_processor.FilterCloud(input_cloud, kFilterResolution, kMinPoint, kMaxPoint);
 
-//    renderPointCloud(viewer, filter_cloud, "FilteredCloud");
-
-    constexpr int kMaxIterations = 100;
-    constexpr float kDistanceThreshold = 0.2;
-    auto segment_cloud = point_cloud_processor.SegmentPlane(filter_cloud, kMaxIterations, kDistanceThreshold);
-
-//    // render obstacles point cloud with red
-//    renderPointCloud(viewer, segment_cloud.first, "ObstacleCloud", Color(1, 0, 0));
-    // render ground plane with green
-//    renderPointCloud(viewer, segment_cloud.second, "GroundCloud", Color(0, 1, 0));
-
-
-    /*** Euclidean clustering ***/
-    // float clusterTolerance, int minSize, int maxSize
-    constexpr float kClusterTolerance = 0.35;
     constexpr int kMinSize = 15;
     constexpr int kMaxSize = 600;
-    auto cloud_clusters = point_cloud_processor.Clustering(segment_cloud.first, kClusterTolerance, kMinSize, kMaxSize);
 
-    int cluster_ID = 1;
-    std::vector<Color> colors = {Color(1, 0, 0), Color(0, 0, 1), Color(0.5, 0, 1)};
-    int num_of_colors = colors.size();
-
+    int ID = 1;
     Box host_box = {-1.5, -1.7, -1, 2.6, 1.7, -0.4};
     renderBox(viewer, host_box, 0, Color(0.5, 0, 1), 0.8);
 
     constexpr float kBBoxMinHeight = 0.75;
-    for(const auto& cluster : cloud_clusters) {
-        std::cout << "cluster size ";
-        point_cloud_processor.numPoints(cluster);
+    Box box; // TODO remove, Subscribe Bbox coordinates
+    int num_of_bbox = bounding_box.x_max.size(); // TODO
+    for(int i=0; i<num_of_bbox; i++) { // TODO method
+        box.x_min = bounding_box.x_min[i];
+        box.y_min = bounding_box.y_min[i];
+        box.z_min = bounding_box.z_min[i];
+        box.x_max = bounding_box.x_max[i];
+        box.y_max = bounding_box.y_max[i];
+        box.z_max = bounding_box.z_max[i];
 
-//        renderPointCloud(viewer, cluster, "ObstacleCloud" + std::to_string(cluster_ID), colors[cluster_ID % num_of_colors]);
-
-        Box box = point_cloud_processor.BoundingBox(cluster);
-        // Filter out some cluster with little points and shorter in height
-        if (box.z_max - box.z_min >= kBBoxMinHeight || cluster->points.size() >= kMinSize * 2) {
-            renderBox(viewer, box, cluster_ID);
-        }
-
-        cluster_ID++;
+        renderBox(viewer, box, ID, Color(0.5, 0, 1));
+        ID++;
     }
 }
 
@@ -84,13 +70,103 @@ void initCamera(CameraAngle setAngle, pcl::visualization::PCLVisualizer::Ptr& vi
         viewer->addCoordinateSystem(1.0);
 }
 
+pcl::visualization::PCLVisualizer::Ptr visualize_range(pcl::visualization::PCLVisualizer::Ptr viewer) // TODO name, return type, input type
+{
+    pcl::ModelCoefficients coeffs;
+    coeffs.values.clear ();
+    coeffs.values.push_back (0);
+    coeffs.values.push_back (0);
+    coeffs.values.push_back (5);
+    viewer->addCircle(coeffs, "circle"); // TODO name
+    viewer->setShapeRenderingProperties(pcl::visualization::PCL_VISUALIZER_REPRESENTATION, pcl::visualization::PCL_VISUALIZER_REPRESENTATION_WIREFRAME, "circle");
+    viewer->setShapeRenderingProperties(pcl::visualization::PCL_VISUALIZER_LINE_WIDTH,3, "circle");
+    viewer->setShapeRenderingProperties(pcl::visualization::PCL_VISUALIZER_COLOR, 1,0,0, "circle");
+
+    coeffs.values.clear ();
+    coeffs.values.push_back (0);
+    coeffs.values.push_back (0);
+    coeffs.values.push_back (10);
+    viewer->addCircle(coeffs, "circle2");
+    viewer->setShapeRenderingProperties(pcl::visualization::PCL_VISUALIZER_REPRESENTATION, pcl::visualization::PCL_VISUALIZER_REPRESENTATION_WIREFRAME, "circle2");
+    viewer->setShapeRenderingProperties(pcl::visualization::PCL_VISUALIZER_LINE_WIDTH,3, "circle2");
+    viewer->setShapeRenderingProperties(pcl::visualization::PCL_VISUALIZER_COLOR, 1,1,0, "circle2");
+
+    coeffs.values.clear ();
+    coeffs.values.push_back (0);
+    coeffs.values.push_back (0);
+    coeffs.values.push_back (15);
+    viewer->addCircle(coeffs, "circle3");
+    viewer->setShapeRenderingProperties(pcl::visualization::PCL_VISUALIZER_REPRESENTATION, pcl::visualization::PCL_VISUALIZER_REPRESENTATION_WIREFRAME, "circle3");
+    viewer->setShapeRenderingProperties(pcl::visualization::PCL_VISUALIZER_LINE_WIDTH,3, "circle3");
+    viewer->setShapeRenderingProperties(pcl::visualization::PCL_VISUALIZER_COLOR, 0,1,0, "circle3");
+
+    return (viewer); // TODO remove
+}
+
+void run_pcl_viewer(pcl::PointCloud<pcl::PointXYZI>::Ptr input_cloud) {
+//    pcl::visualization::PCLVisualizer::Ptr viewer(new pcl::visualization::PCLVisualizer("FOC GUI")); // TODO
+//    CameraAngle setAngle = FPS;
+//    initCamera(setAngle, viewer);
+
+/*    while(!viewer->wasStopped()) {
+        // Clear viewer
+        viewer->removeAllPointClouds();
+        viewer->removeAllShapes();
+
+        visualize_range(viewer);
+
+        // Run obstacle detection process
+        cityBlock(viewer, input_cloud);
+
+        // viewer spin
+        viewer->spinOnce(100);
+    }*/
+    // Clear viewer
+    viewer->removeAllPointClouds();
+    viewer->removeAllShapes();
+
+    visualize_range(viewer);
+
+    // Run obstacle detection process
+    cityBlock(viewer, input_cloud);
+
+    // viewer spin
+//    viewer->spinOnce(100);
+    viewer->spinOnce();
+}
+
+void callback(lidar_object_detection::bbox msg) {
+    pcl::fromROSMsg(msg.lidar_point, *input_cloud);
+
+    bounding_box.x_min = msg.x_min;
+    bounding_box.y_min = msg.y_min;
+    bounding_box.z_min = msg.z_min;
+
+    bounding_box.x_max = msg.x_max;
+    bounding_box.y_max = msg.y_max;
+    bounding_box.z_max = msg.z_max;
+
+    run_pcl_viewer(input_cloud);
+}
 
 int main (int argc, char** argv) {
+    CameraAngle setAngle = FPS;
+    initCamera(setAngle, viewer);
+
+    // Initialize ROS
+    ros::init (argc, argv, "FOC_GUI");
+    ros::NodeHandle nh;
+
+    // Create a ROS subscriber for the input point cloud
+    ros::Subscriber sub2 = nh.subscribe("/detector", 10, callback); // TODO
+    ros::spin();
+
+    /*
     pcl::visualization::PCLVisualizer::Ptr viewer(new pcl::visualization::PCLVisualizer("3D Viewer"));
     CameraAngle setAngle = FPS;
     initCamera(setAngle, viewer);
 
-    ProcessPointClouds<pcl::PointXYZI> point_cloud_processor;
+//    ProcessPointClouds<pcl::PointXYZI> point_cloud_processor;
     std::vector<boost::filesystem::path> stream = point_cloud_processor.streamPcd("../data/pcd/data_2");
     auto stream_iterator = stream.begin();
     pcl::PointCloud<pcl::PointXYZI>::Ptr input_cloud;
@@ -111,5 +187,7 @@ int main (int argc, char** argv) {
 
         // viewer spin
         viewer->spinOnce();
-    }
+    }*/
+
+    return 0;
 }
